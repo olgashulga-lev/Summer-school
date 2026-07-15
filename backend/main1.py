@@ -145,29 +145,6 @@ def create_player_alt(data: dict, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.post("/api/person/create", status_code=201)
-def create_player(person: PersonCreate, db: Session = Depends(get_db)):
-    existing = get_person(db, person.chat_id, person.user_id)
-    if existing:
-        raise HTTPException(status_code=400, detail="Игрок уже существует")
-    
-    db_player = Person(
-        user_id=person.user_id,
-        chat_id=person.chat_id,
-        name=person.name,
-        photo=person.photo,
-        experience=0,
-        money=100,
-        hp=100,
-        damage=20,
-        luck=20,
-        level=person.level
-    )
-    db.add(db_player)
-    db.commit()
-    db.refresh(db_player)
-    return {"message": "Игрок создан"}
-
 @app.put("/api/person/update")
 def update_player(
         chat_id: int,
@@ -203,42 +180,6 @@ def get_all_players(db: Session = Depends(get_db)):
         )
         for p in players
     ]
-
-@app.put("/api/person/update_level")
-def update_player_level(
-    chat_id: int,
-    user_id: int,
-    level: int,
-    db: Session = Depends(get_db)
-):
-    player = get_person(db, chat_id, user_id)
-    if not player:
-        raise HTTPException(status_code=404, detail="Игрок не найден")
-    
-    player.level = level
-    db.commit()
-    return {"message": "Уровень обновлён", "level": level}
-
-@app.get("/api/person/level/{chat_id}/{user_id}")
-def get_player_level(
-    chat_id: int,
-    user_id: int,
-    db: Session = Depends(get_db)
-):
-    player = get_person(db, chat_id, user_id)
-    if not player:
-        raise HTTPException(status_code=404, detail="Игрок не найден")
-    
-    return {"level": player.level, "experience": player.experience}
-
-# Здоровье
-@app.get("/")
-def root():
-    return {"message": "МеханоБот API работает!"}
-
-@app.get("/health")
-def health():
-    return {"status": "OK"}
 
 if __name__ == "__main__":
     import uvicorn

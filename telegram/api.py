@@ -102,18 +102,3 @@ def get_all_players():
             level=p.get('level', 1)
         ))
     return players
-
-def get_and_update_player_with_exp(chat_id, user_id, exp_gain):
-    player = get_player(chat_id, user_id)
-    if not player:
-        return None, False
-    
-    leveled_up = player.add_exp(exp_gain)
-    update_player(player)
-    return player, leveled_up
-
-def get_player_exp_for_level(level):
-    return int(50 * level + 50 * (level ** 2) / 2)
-
-def get_max_level():
-    return 30

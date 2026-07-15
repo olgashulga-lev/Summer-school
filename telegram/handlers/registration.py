@@ -25,10 +25,6 @@ async def cmd_registration_start(message: types.Message, state: FSMContext):
 
 @router.message(RegistrationState.waiting_name)
 async def cmd_registration_name(message: types.Message, state: FSMContext):
-    if len(message.text) > 30:
-        await message.answer("Имя слишком длинное! Напишите покороче.")
-        return
-    
     await state.update_data(name=message.text)
     await state.set_state(RegistrationState.waiting_photo)
     await message.answer("Теперь отправьте фото вашего персонажа:")
@@ -66,8 +62,3 @@ async def cmd_registration_photo(message: types.Message, state: FSMContext):
         await message.answer(f"Добро пожаловать, {name}! Теперь вы можете играть!")
     else:
         await message.answer("Произошла ошибка при регистрации. Попробуйте позже.")
-
-@router.message(Command("cancel"), StateFilter(RegistrationState))
-async def cmd_cancel_registration(message: types.Message, state: FSMContext):
-    await state.clear()
-    await message.answer("Регистрация отменена.")
