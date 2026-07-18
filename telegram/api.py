@@ -1,7 +1,7 @@
 import requests
 import configparser
 from pathlib import Path
-from models import Player
+from models import Player, Item
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -102,3 +102,32 @@ def get_all_players():
             level=p.get('level', 1)
         ))
     return players
+
+#Предметы
+
+def get_items():
+    data = _make_request("GET", "item/all")
+    if not data:
+        return []
+    
+    items = []
+    for i in data:
+        items.append(Item(
+            id=i['id'],
+            name=i['name'],
+            price=i['price'],
+            description=i['description'],
+            type=i['type']
+        ))
+    return items
+
+def add_item_to_inventory(chat_id, user_id, item_id, item_name, item_type, quantity=1):
+    data = {
+        'user_id': user_id,
+        'chat_id': chat_id,
+        'item_id': item_id,
+        'item_name': item_name,
+        'item_type': item_type,
+        'quantity': quantity
+    }
+    return _make_request("POST", "inventory/add", data=data)

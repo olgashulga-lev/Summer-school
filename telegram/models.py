@@ -41,3 +41,11 @@ class Player:
     def apply_level_bonus(self):
         self.damage += 2
         self.luck = min(0.8, self.luck + 0.05)
+
+class Item:
+    def __init__(self, id, name, price, description, type):
+        self.id = id
+        self.name = name
+        self.price = price
+        self.description = description
+        self.type = type

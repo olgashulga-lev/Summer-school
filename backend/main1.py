@@ -38,6 +38,22 @@ class Person(Base):
     luck = Column(Integer, default=20)
     level = Column(Integer, default=1)
 
+class Inventory(Base):
+    __tablename__ = "inventory"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False)
+    chat_id = Column(Integer, nullable=False)
+    item_id = Column(Integer, nullable=False)
+    item_name = Column(String(100), nullable=False)
+    item_type = Column(String(50), nullable=False)
+    quantity = Column(Integer, default=1)
+    purchased_at = Column(DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        UniqueConstraint('user_id', 'chat_id', 'item_id', name='uq_user_item'),
+    )
+
 # Создание таблиц
 Base.metadata.create_all(bind=engine)
 
@@ -70,6 +86,34 @@ class PersonResponse(BaseModel):
     damage: int
     luck: int
     level: int = 1
+    
+    class Config:
+        from_attributes = True
+
+class ItemResponse(BaseModel):
+    id: int
+    name: str
+    price: int
+    description: str
+    type: str
+    
+    class Config:
+        from_attributes = True
+
+class InventoryAddRequest(BaseModel):
+    user_id: int
+    chat_id: int
+    item_id: int
+    item_name: str
+    item_type: str
+    quantity: int = 1
+
+class InventoryItemResponse(BaseModel):
+    id: int
+    item_id: int
+    name: str
+    type: str
+    quantity: int
     
     class Config:
         from_attributes = True
@@ -180,6 +224,58 @@ def get_all_players(db: Session = Depends(get_db)):
         )
         for p in players
     ]
+
+# Items (для магазина)
+@app.get("/api/item/all", response_model=List[ItemResponse])
+def get_items(db: Session = Depends(get_db)):
+    return [
+        ItemResponse(id=1, name="Зелье здоровья", price=50, description="Восстанавливает 20 HP", type="shop"),
+        ItemResponse(id=2, name="Зелье силы", price=80, description="Увеличивает урон на 5", type="shop"),
+        ItemResponse(id=3, name="Амулет удачи", price=100, description="Увеличивает удачу", type="shop"),
+        ItemResponse(id=4, name="Броня", price=150, description="Увеличивает HP на 20", type="shop"),
+    ]
+
+@app.get("/api/inventory/{chat_id}/{user_id}", response_model=List[InventoryItemResponse])
+def get_inventory(chat_id: int, user_id: int, db: Session = Depends(get_db)):
+    items = db.query(Inventory).filter(
+        Inventory.chat_id == chat_id,
+        Inventory.user_id == user_id
+    ).all()
+    
+    return [
+        InventoryItemResponse(
+            id=inv.id,
+            item_id=inv.item_id,
+            name=inv.item_name,
+            type=inv.item_type,
+            quantity=inv.quantity
+        )
+        for inv in items
+    ]
+
+@app.post("/api/inventory/add")
+def add_to_inventory(request: InventoryAddRequest, db: Session = Depends(get_db)):
+    existing = db.query(Inventory).filter(
+        Inventory.user_id == request.user_id,
+        Inventory.chat_id == request.chat_id,
+        Inventory.item_id == request.item_id
+    ).first()
+    
+    if existing:
+        existing.quantity += request.quantity
+    else:
+        new_item = Inventory(
+            user_id=request.user_id,
+            chat_id=request.chat_id,
+            item_id=request.item_id,
+            item_name=request.item_name,
+            item_type=request.item_type,
+            quantity=request.quantity
+        )
+        db.add(new_item)
+    
+    db.commit()
+    return {"message": "Предмет добавлен в инвентарь"}
 
 if __name__ == "__main__":
     import uvicorn
